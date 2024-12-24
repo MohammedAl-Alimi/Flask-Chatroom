@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatroom</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Light mode (default) styles */
+        body {
+            background-color: #f0f0f0;
+            color: #000;
+        }
+        .sidebar, .chat-input {
+            background-color: #ececec;
+        }
+        .chat-messages {
+            background-color: #e5ddd5;
+        }
+        .chat-messages .message {
+            background-color: white;
+        }
+        .chat-messages .message.user {
+            background-color: #dcf8c6;
+        }
+
+        /* Dark mode styles with lighter grey */
+        .dark-mode body {
+            background-color: #2e2e2e; /* Lighter grey */
+            color: #fff;
+        }
+        .dark-mode .sidebar {
+            background-color: #3a3a3a; /* Lighter grey */
+        }
+        .dark-mode .chat-messages {
+            background-color: #4a4a4a; /* Lighter grey */
+        }
+        .dark-mode .chat-messages .message {
+            background-color: #555; /* Lighter grey */
+        }
+        .dark-mode .chat-messages .message.user {
+            background-color: #666; /* Lighter grey */
+        }
+
+        /* Exclude text boxes and general chat box from dark mode */
+        .chat-input, .chat-input input, .chat-input button {
+            background-color: #f0f0f0;
+            color: #000;
+        }
+        .chat-input input {
+            border: 1px solid #ccc;
+        }
+        .chat-input button {
+            background-color: #008069;
+            color: white;
+        }
+
+        /* Dropdown menu styles */
+        .menu {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: none;
+            z-index: 1000;
+        }
+        .menu-item {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .menu-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            border-right: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 10px;
+            background-color: #008069;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .sidebar-header img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+        .sidebar-chats {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .chat {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+        }
+        .chat img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .chat:hover {
+            background-color: #f5f5f5;
+        }
+        .chat-window {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .chat-header {
+            background-color: #008069;
+            color: white;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        .chat-messages .message {
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 60%;
+        }
+        .chat-messages .message.bot {
+            background-color: white;
+        }
+        .chat-input {
+            display: flex;
+            padding: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 20px;
+            margin-right: 10px;
+        }
+        .chat-input button {
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .chat-input button:hover {
+            background-color: #006f57;
+        }
+
+        .chat-messages .message img {
+            max-width: 100px; /* Smaller image size */
+            border-radius: 8px; /* Smooth border */
+        }
+
+        #imageInput {
+            border: none; /* Remove default border */
+            border-radius: 20px; /* Round border */
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        #imageInput::file-selector-button {
+            background-color: #008069;
+            color: white;
+            border: none;
+            border-radius: 20px; /* Round border */
+            padding: 5px 10px;
+            cursor: pointer;
+            content: 'Upload Image'; /* Change button text */
+        }
+
+        #imageInput::file-selector-button:hover {
+            background-color: #006f57;
+        }
+    </style>
+</head>
+<body>
+    <div id="usernameModal" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    ">
+        <div style="
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        ">
+            <h2>Enter your username</h2>
+            <input type="text" id="usernameInput" placeholder="Username" style="
+                padding: 8px;
+                margin: 10px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            ">
+            <button onclick="setUsername()" style="
+                background-color: #008069;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+            ">Join Chat</button>
+        </div>
+    </div>
+
+    <div class="menu" id="menu">
+        <div class="menu-item" id="toggleMode">Toggle Dark Mode</div>
+    </div>
+
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <img src="/static/images/logo.png" alt="Profile" style="width: 100px; height: 100px;">
+                <span>Chatroom</span>
+                <i class="fas fa-cog" id="menuToggle" style="cursor: pointer;"></i>
+            </div>
+            <div class="sidebar-chats">
+                <div class="chat">
+                    <img src="https://via.placeholder.com/50" alt="User">
+                    <div>
+                        <p><strong>General Room</strong></p>
+                        <p>Last message...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Window -->
+        <div class="chat-window">
+            <div class="chat-header">
+                <span>General Room</span>
+                <i class="fas fa-ellipsis-v"></i>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will appear here -->
+                <div id="typingIndicator" style="font-style: italic; color: gray;"></div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Type a message...">
+                <input type="file" id="imageInput" accept="image/*" style="margin-right: 10px; border-radius: 20px;">
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        $(document).ready(function() {
+            var socket = io();
+            var username = null;
+
+            // Disable chat input until username is set
+            $('#messageInput, #sendButton').prop('disabled', true);
+
+            socket.on('connect', function() {
+                console.log('Connected to server');
+            });
+
+            socket.on('new_message', function(data) {
+                console.log('Received message:', data);
+                const messageClass = data.includes(username + ":") ? "user" : "bot";
+                $('#chatMessages').append(`<div class="message ${messageClass}">${data}</div>`);
+                $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+            });
+
+            window.setUsername = function() {
+                username = $('#usernameInput').val().trim();
+                if (username) {
+                    // Send username to server
+                    socket.emit('set_username', username);
+                    // Hide the modal
+                    $('#usernameModal').hide();
+                    // Enable chat input
+                    $('#messageInput, #sendButton').prop('disabled', false);
+                }
+            }
+
+            // Handle enter key on username input
+            $('#usernameInput').keypress(function(e) {
+                if (e.which == 13) {
+                    setUsername();
+                }
+            });
+
+            $('#sendButton').click(function() {
+                const message = $('#messageInput').val().trim();
+                const imageFile = $('#imageInput')[0].files[0];
+
+                if (message) {
+                    console.log('Sending message:', message);
+                    socket.emit('message', message);
+                    $('#messageInput').val('');
+                }
+
+                if (imageFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const imageData = event.target.result;
+                        socket.emit('image', { username: username, image: imageData });
+                    };
+                    reader.readAsDataURL(imageFile);
+                    $('#imageInput').val(''); // Clear the file input
+                }
+            });
+
+            $('#messageInput').keypress(function(e) {
+                if (e.which == 13) {
+                    $('#sendButton').click();
+                }
+            });
+
+            let typingTimeout;
+
+            $('#messageInput').on('input', function() {
+                socket.emit('typing', username);
+                
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    socket.emit('stop_typing', username);
+                }, 1000);
+            });
+
+            socket.on('user_typing', function(username) {
+                $('#typingIndicator').text(`${username} is typing...`);
+            });
+
+            socket.on('user_stop_typing', function(username) {
+                $('#typingIndicator').text('');
+            });
+
+            socket.on('new_image', function(data) {
+                const messageClass = data.username === username ? "user" : "bot";
+                $('#chatMessages').append(`<div class="message ${messageClass}"><img src="${data.image}" alt="User Image" style="max-width: 100%;"></div>`);
+                $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+            });
+
+            $('#menuToggle').click(function() {
+                $('#menu').toggle();
+            });
+
+            $('#toggleMode').click(function() {
+                $('body').toggleClass('dark-mode');
+                $('#menu').hide(); // Hide menu after toggling
+            });
+
+            // Close the menu if clicked outside
+            $(document).click(function(event) {
+                if (!$(event.target).closest('#menu, #menuToggle').length) {
+                    $('#menu').hide();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
